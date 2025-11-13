@@ -145,3 +145,284 @@
       text-align: center;
       margin-top: 10px;
       font-size: 0.95rem;
+      color: #333;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    /* Celebration overlay */
+    .celebration {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+    }
+
+    /* Make sure hidden actually hides the celebration */
+    .celebration.hidden {
+      display: none;
+    }
+
+    .celebration-card {
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 24px 30px 20px;
+      text-align: center;
+      max-width: 380px;
+      width: 90%;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .celebration-card h2 {
+      margin: 0 0 6px;
+      font-size: 1.7rem;
+      color: #145da0;
+    }
+
+    .celebration-card p {
+      margin: 0 0 16px;
+      font-size: 1rem;
+    }
+
+    .celebration-emoji {
+      font-size: 3rem;
+      margin-bottom: 6px;
+    }
+
+    /* Simple confetti with emojis */
+    .confetti-piece {
+      position: absolute;
+      top: -40px;
+      font-size: 1.4rem;
+      animation: fall 2.8s linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes fall {
+      0% {
+        transform: translateY(-40px) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(260px) rotate(360deg);
+        opacity: 0;
+      }
+    }
+
+    @media (max-width: 540px) {
+      .card {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+      .emoji {
+        order: -1;
+      }
+      .big-word {
+        font-size: 1.7rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="game-wrapper">
+    <h1>Winter Typing Path – K</h1>
+    <div class="subtitle">
+      Look at the word. Type it in the box. When it matches, move along the snowy path! ❄️
+    </div>
+
+    <div class="path" id="path"></div>
+
+    <div class="card">
+      <div>
+        <div class="prompt">Type this word:</div>
+        <div class="big-word" id="wordDisplay"></div>
+        <div class="input-area">
+          <input id="answerInput" type="text" autocomplete="off" />
+          <button id="checkBtn">Check</button>
+          <button id="skipBtn" class="secondary" title="For teacher use">Skip</button>
+        </div>
+        <div id="status" class="status"></div>
+      </div>
+      <div class="emoji" id="emojiDisplay"></div>
+    </div>
+
+    <div class="progress-text" id="progressText"></div>
+  </div>
+
+  <!-- Celebration (hidden by default) -->
+  <div id="celebration" class="celebration hidden">
+    <div class="celebration-card">
+      <div class="celebration-emoji">🎉❄️🎄</div>
+      <h2>Great Job!</h2>
+      <p>You finished the Winter Typing Path!</p>
+      <button id="playAgainBtn">Play Again</button>
+    </div>
+  </div>
+
+  <script>
+    // Simple K-level winter words (short and easy to sound out)
+    const words = [
+      { text: "snow", emoji: "❄️" },
+      { text: "sled", emoji: "🛷" },
+      { text: "tree", emoji: "🎄" },
+      { text: "star", emoji: "⭐" },
+      { text: "gift", emoji: "🎁" },
+      { text: "coat", emoji: "🧥" },
+      { text: "hat",  emoji: "🧣" },
+      { text: "bell", emoji: "🔔" }
+    ];
+
+    let currentIndex = 0;
+
+    const pathEl = document.getElementById("path");
+    const wordDisplay = document.getElementById("wordDisplay");
+    const emojiDisplay = document.getElementById("emojiDisplay");
+    const answerInput = document.getElementById("answerInput");
+    const statusEl = document.getElementById("status");
+    const progressText = document.getElementById("progressText");
+    const checkBtn = document.getElementById("checkBtn");
+    const skipBtn = document.getElementById("skipBtn");
+    const celebration = document.getElementById("celebration");
+    const playAgainBtn = document.getElementById("playAgainBtn");
+
+    function buildPath() {
+      pathEl.innerHTML = "";
+      for (let i = 0; i < words.length; i++) {
+        const step = document.createElement("span");
+        step.className = "step";
+        step.textContent = "❄️";
+        pathEl.appendChild(step);
+      }
+    }
+
+    function updatePath() {
+      const steps = pathEl.querySelectorAll(".step");
+      steps.forEach((step, i) => {
+        if (i <= currentIndex - 1) {
+          step.classList.add("active");
+        } else {
+          step.classList.remove("active");
+        }
+      });
+    }
+
+    function showWord() {
+      const current = words[currentIndex];
+      wordDisplay.textContent = current.text;
+      emojiDisplay.textContent = current.emoji;
+      answerInput.value = "";
+      answerInput.focus();
+      statusEl.textContent = "";
+      statusEl.className = "status";
+      progressText.textContent = `Snowflake ${currentIndex + 1} of ${words.length}`;
+      updatePath();
+    }
+
+    function handleCheck() {
+      const userValue = answerInput.value.trim().toLowerCase();
+      const correctValue = words[currentIndex].text;
+
+      if (!userValue) {
+        statusEl.textContent = "Type the word.";
+        statusEl.className = "status error";
+        return;
+      }
+
+      if (userValue === correctValue) {
+        statusEl.textContent = "Nice job!";
+        statusEl.className = "status ok";
+
+        currentIndex++;
+
+        if (currentIndex >= words.length) {
+          updatePath();
+          endGame();
+        } else {
+          setTimeout(showWord, 500);
+        }
+      } else {
+        statusEl.textContent = "Check your letters. Try again!";
+        statusEl.className = "status error";
+      }
+    }
+
+    function endGame() {
+      // disable input
+      answerInput.disabled = true;
+      checkBtn.disabled = true;
+      skipBtn.disabled = true;
+
+      showCelebration();
+    }
+
+    function resetGame() {
+      currentIndex = 0;
+      answerInput.disabled = false;
+      checkBtn.disabled = false;
+      skipBtn.disabled = false;
+      buildPath();
+      showWord();
+      hideCelebration();
+    }
+
+    function showCelebration() {
+      celebration.classList.remove("hidden");
+      createConfetti();
+    }
+
+    function hideCelebration() {
+      celebration.classList.add("hidden");
+      // Remove any existing confetti
+      const old = celebration.querySelectorAll(".confetti-piece");
+      old.forEach(el => el.remove());
+    }
+
+    function createConfetti() {
+      const emojis = ["❄️", "🎄", "⭐", "🎁"];
+      const card = celebration.querySelector(".celebration-card");
+      const width = card.offsetWidth;
+
+      for (let i = 0; i < 25; i++) {
+        const piece = document.createElement("div");
+        piece.className = "confetti-piece";
+        piece.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+        const left = Math.random() * width;
+        piece.style.left = left + "px";
+        piece.style.animationDelay = (Math.random() * 1.5) + "s";
+        card.appendChild(piece);
+      }
+    }
+
+    // Event listeners
+    checkBtn.addEventListener("click", handleCheck);
+    skipBtn.addEventListener("click", () => {
+      // For teacher: move to next word without checking
+      currentIndex++;
+      if (currentIndex >= words.length) {
+        endGame();
+      } else {
+        showWord();
+      }
+    });
+
+    answerInput.addEventListener("keyup", (e) => {
+      if (e.key === "Enter") {
+        handleCheck();
+      }
+    });
+
+    playAgainBtn.addEventListener("click", resetGame);
+
+    // Initialize
+    buildPath();
+    showWord();
+  </script>
+</body>
+</html>
